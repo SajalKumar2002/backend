@@ -4,7 +4,7 @@ const User = require("../SQLmodel/user.model");
 
 const {
     sendTokenToClient
-} = require('../helpers/token.Helper')
+} = require('../helpers/token.helper')
 
 const registerUser = async (req, res) => {
     try {
