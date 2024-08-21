@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
 
 exports.getAccessToRoute = (req, res, next) => {
     if (req.cookies.usertoken) {

@@ -1,8 +1,3 @@
-const csv = require('csvtojson');
-const { sequelize } = require("../config/SQLconnection");
-const { DataTypes } = require('sequelize');
-const { Sequelize } = require('sequelize');
-
 const {
     getObject
 } = require('../helpers/bucket.helper');
@@ -12,39 +7,41 @@ const {
     arrayDivider
 } = require('../helpers/upload.helper')
 
-const SqlConnector = async (req, res) => {
-    try {
-        const { serveraddress, port, username, password, database } = req.body;
-        const sequelize = new Sequelize(database, username, password, {
-            host: serveraddress,
-            dialect: 'mssql',
-            logging: false,
-            dialectOptions: {
-                options: {
-                    encrypt: true,
-                    trustServerCertificate: true,
-                }
-            }
-        });
-        try {
-            await sequelize.authenticate();
-            console.log('Connection has been established successfully.');
-            const tables = await sequelize.getQueryInterface().showAllTables();
-            res.send({ success: true, tables })
-        } catch (error) {
-            console.error('Unable to connect to the database:', error.original.code);
-            if (error.original.code == "ELOGIN") res.send({ success: false, message: "Invalid Credentials" }, error.original.code)
-        }
-    } catch (error) {
-        console.log(error);
-        res.send({ success: false, message: "Request failed" })
-    }
-}
+const api1 = require('../api1');
+const api2 = require('../api2');
+
+const {
+    connection,
+    createDatabase,
+    generateDatabaseName,
+    createTableFromCSV,
+} = require('../helpers/mysql.helper')
 
 const CSVConvertor = async (req, res) => {
+    let sequelize;
     try {
+        const initialConnection = connection();
+        await initialConnection.authenticate();
+
         const CSVFiles = req.files;
-        let response = [];
+
+        if (CSVFiles.length === 0) {
+            return res.status(400).send({ "error": "No S3 URLs provided" });
+        }
+
+        const db_name = await generateDatabaseName(initialConnection, 'sajal');
+
+        if (db_name === null) {
+            return res.send({ error: "Database creation failed" });
+        }
+
+        if (!createDatabase(initialConnection, db_name)) {
+            return res.send({ error: "Database creating failed" })
+        }
+
+        sequelize = connection(db_name);
+
+        let tables = [];
 
         for (let index = 0; index < CSVFiles.length; index++) {
             const file = CSVFiles[index];
@@ -60,28 +57,11 @@ const CSVConvertor = async (req, res) => {
                 });
 
             const csvData = await streamToString(CSVData.Body);
-
-            jsonData = await csv().fromString(csvData);
-            const columns = {};
-
             const modelName = nameExtractor(file);
 
-            Object.keys(jsonData[0]).forEach((key) => {
-                columns[key] = {
-                    type: DataTypes.STRING,
-                    allowNull: true,
-                };
-            });
+            const jsonData = await createTableFromCSV(sequelize, modelName, csvData)
 
-            const DynamicModel = sequelize.define(modelName, columns);
-
-            DynamicModel.sync({ alter: true })
-                .catch(error => {
-                    console.error('Error syncing:', error.original);
-                });
-
-            await DynamicModel.bulkCreate(jsonData);
-            response.push(
+            tables.push(
                 {
                     name: modelName,
                     table: arrayDivider(jsonData, 5)
@@ -89,14 +69,27 @@ const CSVConvertor = async (req, res) => {
             )
         }
 
-        res.status(200).send(response);
+        const config = {
+            "user": process.env.DB_USERNAME,
+            "password": process.env.DB_PASS,
+            "host": process.env.DB_HOST,
+            "port": process.env.DB_PORT,
+            "database": db_name
+        }
+
+        await api1.post("/set_db_config", config)
+
+        await api2.post("/set_db_config", config)
+
+        res.status(200).send({ database: db_name, tables: tables });
     } catch (error) {
-        console.error('Error processing file:', error);
+        console.error('Error:', error);
         res.status(500).send({ error: error });
+    } finally {
+        await sequelize.close();
     }
 }
 
 module.exports = {
-    SqlConnector,
     CSVConvertor
 }

@@ -17,7 +17,7 @@ const buildpath = path.join(__dirname, "../frontend/build")
 app.use(express.static(buildpath))
 
 const corsOptions = {
-    origin: "*",
+    origin: "http://localhost:3000",
     credentials: true
 };
 app.use(cors(corsOptions));

@@ -28,7 +28,7 @@ const Job = sequelize.define("Job", {
     },
     status: {
         type: DataTypes.TEXT,
-        defaultValue: () => "waiting",
+        defaultValue: () => "completed",
     },
     userid: {
         type: DataTypes.UUID,
