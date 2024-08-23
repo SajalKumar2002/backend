@@ -1,6 +1,8 @@
 const {
-    GetObjectCommand
+    GetObjectCommand,
 } = require('@aws-sdk/client-s3');
+
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const s3Client = require('../config/s3config');
 
@@ -10,8 +12,8 @@ exports.getObjectUrl = async (Key) => {
         Key: Key
     })
 
-    const response = await s3Client.send(cammand);
-    return response;
+    const url = await getSignedUrl(s3Client, cammand)
+    return url;
 }
 
 exports.getObject = async (Key) => {

@@ -1,5 +1,6 @@
 const {
-    getObject
+    getObject,
+    getObjectUrl
 } = require('../helpers/bucket.helper');
 
 const {
@@ -17,7 +18,7 @@ const {
     createTableFromCSV,
 } = require('../helpers/mysql.helper')
 
-const CSVConvertor = async (req, res) => {
+const CSVHandler = async (req, res) => {
     let sequelize;
     try {
         const initialConnection = connection();
@@ -90,6 +91,18 @@ const CSVConvertor = async (req, res) => {
     }
 }
 
+const PDFHandler = async (req, res) => {
+    try {
+        const fileUrl =await getObject(req.file.key);
+        console.log(fileUrl);
+        // res.send(fileUrl)
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send({ error: error });
+    }
+}
+
 module.exports = {
-    CSVConvertor
+    CSVHandler,
+    PDFHandler
 }

@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { createConnection, sequelize } = require('./config/SQLconnection.js');
 const bcrypt = require('bcrypt');
 

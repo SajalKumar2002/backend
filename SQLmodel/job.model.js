@@ -17,18 +17,13 @@ const Job = sequelize.define("Job", {
             return date.toLocaleDateString('en-GB') + " - " + date.toLocaleTimeString("en-US");
         }
     },
-    expectedTime: {
+    completedTime: {
         type: DataTypes.STRING,
-        allowNull: true,
-        defaultValue: () => {
-            const date = new Date();
-            date.setMinutes(date.getMinutes() + 10);
-            return date.toLocaleDateString("en-GB") + " - " + date.toLocaleTimeString("en-US");
-        }
+        allowNull: true
     },
     status: {
         type: DataTypes.TEXT,
-        defaultValue: () => "completed",
+        defaultValue: () => "waiting",
     },
     userid: {
         type: DataTypes.UUID,

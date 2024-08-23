@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const api = axios.create({
-    baseURL: "https://afa1-35-227-141-24.ngrok-free.app"
+  baseURL: "https://9c64-34-125-228-233.ngrok-free.app"
 })
 
 module.exports = api;

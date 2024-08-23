@@ -2,6 +2,8 @@ const { Router } = require("express");
 const {
     displayJobDetails,
     generateJob,
+    switchJobStatus,
+    deleteJob
 } = require("../controllers/job.controller");
 
 const {
@@ -13,5 +15,7 @@ const JobsRouter = Router();
 JobsRouter
     .get("/", getAccessToRoute, displayJobDetails)
     .get("/generate", getAccessToRoute, generateJob)
+    .post('/switch', getAccessToRoute, switchJobStatus)
+    .delete('/', getAccessToRoute, deleteJob)
 
 module.exports = JobsRouter;

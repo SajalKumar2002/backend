@@ -8,7 +8,7 @@ const sequelize = new Sequelize(
         host: process.env.DB_HOST,
         dialect: 'mysql',
         logging: false,
-        port: 3306,
+        port: process.env.DB_PORT,
     });
 
 const createConnection = async () => {
