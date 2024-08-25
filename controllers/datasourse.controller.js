@@ -21,7 +21,10 @@ const {
     createTableFromCSV,
 } = require('../helpers/mysql.helper')
 
-const getStream = require('get-stream');
+const getStream = async () => {
+    const module = await import('get-stream');
+    return module.default;
+};
 
 const CSVHandler = async (req, res) => {
     let sequelize;
