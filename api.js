@@ -1,8 +1,7 @@
 const axios = require('axios');
 
 const api1 = axios.create({
-    baseURL: "https://a52c-34-142-149-140.ngrok-free.app"
-})
+    baseURL: "https://c7b2-34-143-220-84.ngrok-free.app"
 
 const api2 = axios.create({
     baseURL: "https://81f4-35-204-58-215.ngrok-free.app"
