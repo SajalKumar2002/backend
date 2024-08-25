@@ -38,7 +38,7 @@ const CSVHandler = async (req, res) => {
             const initialConnection = connection();
             await initialConnection.authenticate();
 
-            db_name = await generateDatabaseName(initialConnection, 'sajal');
+            db_name = await generateDatabaseName(initialConnection, 'llm');
 
             if (db_name === null) {
                 return res.status(400).send({ error: "Database creation failed" });
@@ -90,8 +90,8 @@ const CSVHandler = async (req, res) => {
 
             await api2.post("/set_db_config", config)
         } catch (error) {
-            console.log(error.response.data);
-            res.status(400).send({ error: "Database connection failed" })
+            console.log(error.response);
+            return res.status(400).send({ error: "Database connection failed" })
         }
 
         res.status(200).send({ database: db_name, tables: tables });
