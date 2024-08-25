@@ -43,40 +43,26 @@ const CSVHandler = async (req, res) => {
             if (db_name === null) {
                 return res.status(400).send({ error: "Database creation failed" });
             }
-
-            if (!createDatabase(initialConnection, db_name)) {
+            const isDatabaseCreated = createDatabase(initialConnection, db_name);
+            if (!isDatabaseCreated) {
                 return res.status(400).send({ error: "Database creating failed" })
             }
         }
+
         sequelize = connection(db_name);
 
-        let tables = [];
-
-        for (let index = 0; index < CSVFiles.length; index++) {
-            const file = CSVFiles[index];
-
+        const fileProcessingPromises = CSVFiles.map(async (file) => {
             const CSVData = await getObject(file.key);
-
-            const streamToString = (stream) =>
-                new Promise((resolve, reject) => {
-                    const chunks = [];
-                    stream.on('data', (chunk) => chunks.push(chunk));
-                    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-                    stream.on('error', reject);
-                });
-
-            const csvData = await streamToString(CSVData.Body);
+            const csvData = await getStream(CSVData.Body);
             const modelName = nameExtractor(file);
+            const jsonData = await createTableFromCSV(sequelize, modelName, csvData);
+            return {
+                name: modelName,
+                table: arrayDivider(jsonData, 5),
+            };
+        });
 
-            const jsonData = await createTableFromCSV(sequelize, modelName, csvData)
-
-            tables.push(
-                {
-                    name: modelName,
-                    table: arrayDivider(jsonData, 5)
-                }
-            )
-        }
+        const tables = await Promise.all(fileProcessingPromises);
 
         const config = {
             "user": process.env.DB_USERNAME,
@@ -90,7 +76,7 @@ const CSVHandler = async (req, res) => {
 
             await api2.post("/set_db_config", config)
         } catch (error) {
-            console.log(error.response);
+            console.log(error);
             return res.status(400).send({ error: "Database connection failed" })
         }
 
@@ -99,7 +85,7 @@ const CSVHandler = async (req, res) => {
         console.error('Error:', error);
         return res.status(500).send({ error: error });
     } finally {
-        await sequelize.close();
+        if (sequelize) await sequelize.close();
     }
 }
 
