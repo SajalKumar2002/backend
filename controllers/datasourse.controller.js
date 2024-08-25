@@ -94,10 +94,10 @@ const CSVHandler = async (req, res) => {
             return res.status(400).send({ error: "Database connection failed" })
         }
 
-        res.status(200).send({ database: db_name, tables: tables });
+        return res.status(200).send({ database: db_name, tables: tables });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).send({ error: error });
+        return res.status(500).send({ error: error });
     } finally {
         await sequelize.close();
     }
@@ -110,7 +110,7 @@ const PDFHandler = async (req, res) => {
         // res.send(fileUrl)
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).send({ error: error });
+        return res.status(500).send({ error: error });
     }
 }
 
