@@ -41,44 +41,49 @@ const CSVHandler = async (req, res) => {
             db_name = await generateDatabaseName(initialConnection, 'llm');
 
             if (db_name === null) {
-                return res.status(400).send({ error: "Database creation failed" });
+                return res.status(400).send({ error: "Database name generation failed" });
             }
-            
+
             const isDatabaseCreated = await createDatabase(initialConnection, db_name);
             if (!isDatabaseCreated) {
-                return res.status(400).send({ error: "Database creating failed" })
+                return res.status(400).send({ error: "Database creation failed" })
             }
         }
+
         sequelize = connection(db_name);
 
         let tables = [];
 
-        for (let index = 0; index < CSVFiles.length; index++) {
-            const file = CSVFiles[index];
+        try {
+            for (let index = 0; index < CSVFiles.length; index++) {
+                const file = CSVFiles[index];
 
-            const CSVData = await getObject(file.key);
+                const CSVData = await getObject(file.key);
 
-            const streamToString = (stream) =>
-                new Promise((resolve, reject) => {
-                    const chunks = [];
-                    stream.on('data', (chunk) => chunks.push(chunk));
-                    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-                    stream.on('error', reject);
-                });
+                const streamToString = (stream) =>
+                    new Promise((resolve, reject) => {
+                        const chunks = [];
+                        stream.on('data', (chunk) => chunks.push(chunk));
+                        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+                        stream.on('error', reject);
+                    });
 
-            const csvData = await streamToString(CSVData.Body);
-            const modelName = nameExtractor(file);
+                const csvData = await streamToString(CSVData.Body);
+                const modelName = nameExtractor(file);
 
-            const jsonData = await createTableFromCSV(sequelize, modelName, csvData)
+                const jsonData = await createTableFromCSV(sequelize, modelName, csvData)
 
-            tables.push(
-                {
-                    name: modelName,
-                    table: arrayDivider(jsonData, 5)
-                }
-            )
+                tables.push(
+                    {
+                        name: modelName,
+                        table: arrayDivider(jsonData, 5)
+                    }
+                )
+            }
+        } catch (error) {
+            return res.status(400).send({ error: error })
         }
-
+        
         const config = {
             "user": process.env.DB_USERNAME,
             "password": process.env.DB_PASS,
