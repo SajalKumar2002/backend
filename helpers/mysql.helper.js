@@ -41,7 +41,7 @@ exports.createTableFromCSV = async (sequelize, modelName, jsonData) => {
 
     const DynamicModel = sequelize.define(modelName, tableHeaders);
 
-    DynamicModel.sync({ alter: true })
+    await DynamicModel.sync({ alter: true })
 
     await DynamicModel.bulkCreate(jsonData.data);
     const sampleData = DynamicModel.findAll();

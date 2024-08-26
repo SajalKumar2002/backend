@@ -102,8 +102,8 @@ const CSVHandler = async (req, res) => {
         }
 
         try {
-            // await api1.post("/set_db_config", config)
-            // await api2.post("/set_db_config", config)
+            await api1.post("/set_db_config", config)
+            await api2.post("/set_db_config", config)
         } catch (error) {
             console.log(error.response);
             return res.status(400).send({ error: "Database connection failed" })
