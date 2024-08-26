@@ -29,22 +29,26 @@ const CSVHandler = async (req, res) => {
     let db_name;
     const CSVFiles = req.files;
     try {
-
-        if (CSVFiles.length === 0) {
-            return res.status(400).send({ error: "No S3 URLs provided" });
-        }
-
         const initialConnection = connection();
-        await initialConnection.authenticate();
 
-        db_name = await generateDatabaseName(initialConnection, 'llmboxx');
+        if(!req.query?.database) {
 
-        if (db_name === null) {
-            await deleteObject(CSVFiles);
-            return res.status(400).send({ error: "Database name generation failed" });
+            if (CSVFiles.length === 0) {
+                return res.status(400).send({ error: "No S3 URLs provided" });
+            }
+            
+            await initialConnection.authenticate();
+            
+            db_name = await generateDatabaseName(initialConnection, 'llmboxx');
+            
+            if (db_name === null) {
+                await deleteObject(CSVFiles);
+                return res.status(400).send({ error: "Database name generation failed" });
+            }
+            await createDatabase(initialConnection, db_name);
+        } else {
+            db_name = req.query.database;
         }
-
-        await createDatabase(initialConnection, db_name);
 
         sequelize = connection(db_name);
 
