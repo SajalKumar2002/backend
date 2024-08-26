@@ -27,6 +27,10 @@ exports.createDatabase = async (sequelize, db_name) => {
     await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${db_name};`);
 }
 
+exports.deleteDatabase = async (sequelize, db_name) => {
+    await sequelize.query(`DROP DATABASE IF EXISTS ${db_name};`);
+}
+
 exports.createTableFromCSV = async (sequelize, modelName, jsonData) => {
     const columns = jsonData?.meta?.fields
 
@@ -46,7 +50,7 @@ exports.createTableFromCSV = async (sequelize, modelName, jsonData) => {
     await DynamicModel.bulkCreate(jsonData.data);
 
     const sampleData = DynamicModel.findAll();
-    
+
     return sampleData;
 }
 

@@ -2,7 +2,7 @@ const Papa = require('papaparse');
 
 const {
     getObject,
-    getObjectUrl
+    deleteObject
 } = require('../helpers/bucket.helper');
 
 const {
@@ -19,6 +19,7 @@ const {
 const {
     connection,
     createDatabase,
+    deleteDatabase,
     generateDatabaseName,
     createTableFromCSV,
 } = require('../helpers/mysql.helper')
@@ -26,11 +27,11 @@ const {
 const CSVHandler = async (req, res) => {
     let sequelize;
     let db_name;
+    const CSVFiles = req.files;
     try {
-        const CSVFiles = req.files;
 
         if (CSVFiles.length === 0) {
-            return res.status(400).send({ "error": "No S3 URLs provided" });
+            return res.status(400).send({ error: "No S3 URLs provided" });
         }
 
         const initialConnection = connection();
@@ -39,6 +40,7 @@ const CSVHandler = async (req, res) => {
         db_name = await generateDatabaseName(initialConnection, 'llmboxx');
 
         if (db_name === null) {
+            await deleteObject(CSVFiles);
             return res.status(400).send({ error: "Database name generation failed" });
         }
 
@@ -81,16 +83,17 @@ const CSVHandler = async (req, res) => {
                         }
                     )
                 } catch (error) {
+                    deleteObject(CSVFiles);
+                    deleteDatabase(sequelize, db_name);
                     console.log(error);
-                    return res.status(400).send({ error: error })
+                    return res.status(400).send({ error: "Converting CSV data to json Failed" })
                 }
-
             }
-
-
         } catch (error) {
+            deleteObject(CSVFiles);
+            deleteDatabase(sequelize, db_name);
             console.log(error);
-            return res.status(400).send({ error: error })
+            return res.status(400).send({ error: "Reading CSV data failed" })
         }
 
         const config = {
@@ -105,7 +108,9 @@ const CSVHandler = async (req, res) => {
             await api1.post("/set_db_config", config)
             await api2.post("/set_db_config", config)
         } catch (error) {
-            console.log(error.response);
+            deleteDatabase(sequelize, db_name);
+            deleteObject(CSVFiles);
+
             return res.status(400).send({ error: "Database connection failed" })
         }
 
@@ -118,7 +123,8 @@ const CSVHandler = async (req, res) => {
 
     } catch (error) {
         console.error('Error:', error);
-        return res.status(500).send({ error: error });
+        await deleteObject(CSVFiles);
+        return res.status(400).send({ error: "Creating DB faild" });
     }
 }
 
