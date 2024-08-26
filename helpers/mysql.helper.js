@@ -1,4 +1,3 @@
-const csv = require('csvtojson');
 const { Sequelize, DataTypes } = require('sequelize');
 
 exports.connection = (db_name = null) => new Sequelize(
@@ -25,34 +24,32 @@ exports.generateDatabaseName = async (sequelize, basename) => {
 }
 
 exports.createDatabase = async (sequelize, db_name) => {
-    try {
-        await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${db_name};`);
-        return true;
-    } catch (error) {
-        console.log(error);
-        return false;
-    }
+    await sequelize.query(`CREATE DATABASE IF NOT EXISTS ${db_name};`);
 }
 
-exports.createTableFromCSV = async (sequelize, modelName, csvData) => {
-    jsonData = await csv().fromString(csvData);
-    const columns = {};
+exports.createTableFromCSV = async (sequelize, modelName, jsonData) => {
+    const columns = jsonData?.meta?.fields
 
-    Object.keys(jsonData[0]).forEach((key) => {
-        columns[key] = {
+    const tableHeaders = {}
+
+    columns.forEach((key) => {
+        tableHeaders[key] = {
             type: DataTypes.STRING,
             allowNull: true,
         };
-    });
+    })
 
-    const DynamicModel = sequelize.define(modelName, columns);
+    const DynamicModel = sequelize.define(modelName, tableHeaders);
 
     DynamicModel.sync({ alter: true })
-        .catch(error => {
-            console.error('Error syncing:', error.original);
-        });
 
-    const sampleData = await DynamicModel.bulkCreate(jsonData);
-
-    return sampleData
+    await DynamicModel.bulkCreate(jsonData.data);
+    const sampleData = DynamicModel.findAll();
+    return sampleData;
 }
+
+// create connection
+// create database
+// create table from table name extracted from filename
+// Bulk add to that table
+// 

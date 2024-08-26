@@ -1,3 +1,5 @@
+const Papa = require('papaparse');
+
 const {
     getObject,
     getObjectUrl
@@ -23,6 +25,7 @@ const {
 
 const CSVHandler = async (req, res) => {
     let sequelize;
+    let db_name;
     try {
         const CSVFiles = req.files;
 
@@ -30,60 +33,66 @@ const CSVHandler = async (req, res) => {
             return res.status(400).send({ "error": "No S3 URLs provided" });
         }
 
-        let db_name;
+        const initialConnection = connection();
+        await initialConnection.authenticate();
 
-        if (req.query?.database) {
-            db_name = req.query.database;
-        } else {
-            const initialConnection = connection();
-            await initialConnection.authenticate();
+        db_name = await generateDatabaseName(initialConnection, 'llmboxx');
 
-            db_name = await generateDatabaseName(initialConnection, 'llm');
-
-            if (db_name === null) {
-                return res.status(400).send({ error: "Database name generation failed" });
-            }
-
-            const isDatabaseCreated = await createDatabase(initialConnection, db_name);
-            if (!isDatabaseCreated) {
-                return res.status(400).send({ error: "Database creation failed" })
-            }
+        if (db_name === null) {
+            return res.status(400).send({ error: "Database name generation failed" });
         }
+
+        await createDatabase(initialConnection, db_name);
 
         sequelize = connection(db_name);
 
         let tables = [];
 
         try {
-            for (let index = 0; index < CSVFiles.length; index++) {
-                const file = CSVFiles[index];
+            for (const file of CSVFiles) {
 
-                const CSVData = await getObject(file.key);
+                const { Body } = await getObject(file.key);
 
-                const streamToString = (stream) =>
-                    new Promise((resolve, reject) => {
-                        const chunks = [];
-                        stream.on('data', (chunk) => chunks.push(chunk));
-                        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-                        stream.on('error', reject);
-                    });
+                const csvData = await Body?.transformToString("utf-8");
 
-                const csvData = await streamToString(CSVData.Body);
+                const jsonData = Papa.parse(csvData, {
+                    header: true,
+                    dynamicTyping: true,
+                });
+
                 const modelName = nameExtractor(file);
 
-                const jsonData = await createTableFromCSV(sequelize, modelName, csvData)
+                try {
+                    const jsonFormattedData = await createTableFromCSV(
+                        sequelize,
+                        modelName,
+                        jsonData
+                    )
 
-                tables.push(
-                    {
-                        name: modelName,
-                        table: arrayDivider(jsonData, 5)
-                    }
-                )
+                    const sampleTable = arrayDivider(
+                        jsonFormattedData,
+                        5
+                    );
+
+                    tables.push(
+                        {
+                            name: modelName,
+                            table: sampleTable
+                        }
+                    )
+                } catch (error) {
+                    console.log(error);
+                    return res.status(400).send({ error: error })
+                }
+
             }
+
+
         } catch (error) {
+            console.log(error);
             return res.status(400).send({ error: error })
         }
-        
+
         const config = {
             "user": process.env.DB_USERNAME,
             "password": process.env.DB_PASS,
@@ -91,21 +100,25 @@ const CSVHandler = async (req, res) => {
             "port": process.env.DB_PORT,
             "database": db_name
         }
-        try {
-            await api1.post("/set_db_config", config)
 
-            await api2.post("/set_db_config", config)
+        try {
+            // await api1.post("/set_db_config", config)
+            // await api2.post("/set_db_config", config)
         } catch (error) {
             console.log(error.response);
             return res.status(400).send({ error: "Database connection failed" })
         }
 
-        return res.status(200).send({ database: db_name, tables: tables });
+        return res.status(200).send(
+            {
+                database: db_name,
+                tables: tables
+            }
+        );
+
     } catch (error) {
         console.error('Error:', error);
         return res.status(500).send({ error: error });
-    } finally {
-        if (sequelize) await sequelize.close();
     }
 }
 

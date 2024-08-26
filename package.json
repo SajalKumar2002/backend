@@ -21,7 +21,6 @@
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "csvtojson": "^2.0.10",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "get-stream": "^9.0.1",
@@ -30,6 +29,7 @@
     "multer-s3": "^3.0.1",
     "mysql2": "^3.11.0",
     "nodemon": "^3.1.4",
+    "papaparse": "^5.4.1",
     "path": "^0.12.7",
     "sequelize": "^6.37.3",
     "tedious": "^18.3.0"

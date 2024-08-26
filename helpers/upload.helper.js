@@ -6,6 +6,9 @@ exports.nameExtractor = (file) => {
 }
 
 exports.arrayDivider = (array, chunks) => {
-    const result = array.slice(0, chunks)
-    return result;
+    let result = []
+    array.forEach(element => {
+        result.push(element.dataValues);
+    });
+    return result.slice(0, chunks);
 }
