@@ -2,7 +2,8 @@ const Papa = require('papaparse');
 
 const {
     getObject,
-    deleteObject
+    deleteObjects,
+    deleteObject 
 } = require('../helpers/bucket.helper');
 
 const {
@@ -31,16 +32,16 @@ const CSVHandler = async (req, res) => {
     try {
         const initialConnection = connection();
 
-        if(!req.query?.database) {
+        if (!req.query?.database) {
 
             if (CSVFiles.length === 0) {
                 return res.status(400).send({ error: "No S3 URLs provided" });
             }
-            
+
             await initialConnection.authenticate();
-            
+
             db_name = await generateDatabaseName(initialConnection, 'llmboxx');
-            
+
             if (db_name === null) {
                 await deleteObject(CSVFiles);
                 return res.status(400).send({ error: "Database name generation failed" });
@@ -87,36 +88,36 @@ const CSVHandler = async (req, res) => {
                         }
                     )
                 } catch (error) {
-                    deleteObject(CSVFiles);
+                    deleteObjects(CSVFiles);
                     deleteDatabase(sequelize, db_name);
                     console.log(error);
                     return res.status(400).send({ error: "Converting CSV data to json Failed" })
                 }
             }
         } catch (error) {
-            deleteObject(CSVFiles);
+            deleteObjects(CSVFiles);
             deleteDatabase(sequelize, db_name);
             console.log(error);
             return res.status(400).send({ error: "Reading CSV data failed" })
         }
 
-        const config = {
-            "user": process.env.DB_USERNAME,
-            "password": process.env.DB_PASS,
-            "host": process.env.DB_HOST,
-            "port": process.env.DB_PORT,
-            "database": db_name
-        }
+        // const config = {
+        //     "user": process.env.DB_USERNAME,
+        //     "password": process.env.DB_PASS,
+        //     "host": process.env.DB_HOST,
+        //     "port": process.env.DB_PORT,
+        //     "database": db_name
+        // }
 
-        try {
-            await api1.post("/set_db_config", config)
-            await api2.post("/set_db_config", config)
-        } catch (error) {
-            deleteDatabase(sequelize, db_name);
-            deleteObject(CSVFiles);
+        // try {
+        //     await api1.post("/set_db_config", config)
+        //     await api2.post("/set_db_config", config)
+        // } catch (error) {
+        //     deleteDatabase(sequelize, db_name);
+        //     deleteObjects(CSVFiles);
 
-            return res.status(400).send({ error: "Database connection failed" })
-        }
+        //     return res.status(400).send({ error: "Database connection failed" })
+        // }
 
         return res.status(200).send(
             {
@@ -127,18 +128,17 @@ const CSVHandler = async (req, res) => {
 
     } catch (error) {
         console.error('Error:', error);
-        await deleteObject(CSVFiles);
+        await deleteObjects(CSVFiles);
         return res.status(400).send({ error: "Creating DB faild" });
     }
 }
 
 const PDFHandler = async (req, res) => {
     try {
-        const fileUrl = await getObject(req.file.key);
-        console.log(fileUrl);
-        // res.send(fileUrl)
+        res.send({ file: req.file.location })
     } catch (error) {
         console.error('Error:', error);
+        await deleteObject(req.file.key);
         res.status(500).send({ error: error });
     }
 }

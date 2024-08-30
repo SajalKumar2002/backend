@@ -1,12 +1,10 @@
 const {
     GetObjectCommand,
-    DeleteObjectsCommand
+    DeleteObjectsCommand,
+    DeleteObjectCommand
 } = require('@aws-sdk/client-s3');
 
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-
 const s3Client = require('../config/s3config');
-const { readUInt16LE } = require('tedious/lib/token/helpers');
 
 exports.getObject = async (Key) => {
     const input = {
@@ -20,7 +18,7 @@ exports.getObject = async (Key) => {
     return response;
 }
 
-exports.deleteObject = async (array) => {
+exports.deleteObjects = async (array) => {
 
     const objectList = [];
 
@@ -39,6 +37,18 @@ exports.deleteObject = async (array) => {
 
     const command = new DeleteObjectsCommand(input);
     s3Client.send(command);
+
+    return;
+}
+
+exports.deleteObject = async (Key) => {
+    const input = {
+        Bucket: process.env.S3_BUCKET,
+        Key: Key
+    }
+
+    const cammand = new DeleteObjectCommand(input);
+    await s3Client.send(cammand);
 
     return;
 }

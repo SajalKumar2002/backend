@@ -13,6 +13,7 @@ const DataSourceRouter = require('./routes/datasourse.route.js')
 const app = express();
 
 const path = require('path');
+const { deleteObject } = require("./helpers/bucket.helper.js");
 const buildpath = path.join(__dirname, "../frontend/build")
 app.use(express.static(buildpath))
 
